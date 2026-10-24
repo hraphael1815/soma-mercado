@@ -159,7 +159,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 
   <div class="lista">
     <ol class="cupom" id="cupom"></ol>
-    <p class="vazio" id="vazio">Digite o valor, ajuste a quantidade e toque em <b>Incluir</b>.<br>Os produtos aparecem aqui, um abaixo do outro.</p>
+    <p class="vazio" id="vazio">Digite o valor, ajuste a quantidade e toque em <b>Incluir</b>.<br>O último produto incluído aparece sempre no topo da lista.</p>
   </div>
 </div>
 
@@ -224,7 +224,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       li.tabIndex=0;li.setAttribute('role','button');li.setAttribute('aria-label',`Editar item ${i+1}`);
       li.onclick=()=>abreEdicao(i);
       li.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();abreEdicao(i)}};
-      cupom.appendChild(li);
+      cupom.prepend(li);
     });
     $('total').textContent=brl(Math.ceil(tot/10)*10);
     orcamento(tot);
