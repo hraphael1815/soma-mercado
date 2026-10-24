@@ -1,5 +1,5 @@
 // Ao publicar uma nova versão, aumente o número abaixo.
-const VERSAO = 'soma-mercado-v3';
+const VERSAO = 'soma-mercado-v4';
 const ARQUIVOS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
