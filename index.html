@@ -88,7 +88,25 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .confirma div{display:flex;gap:8px}
 .confirma button{border-radius:10px;padding:8px 14px;font-weight:700;font-size:15px;cursor:pointer;border:2px solid var(--line);background:transparent;color:var(--ink)}
 .confirma .sim{background:var(--danger);border-color:var(--danger);color:#fff}
-@media (prefers-reduced-motion:reduce){.item.novo{animation:none}}
+.item{cursor:pointer;grid-template-columns:28px 1fr auto 28px}
+.item:active{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.item:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+.item .ed{color:var(--muted);text-align:center;font-size:16px}
+.fundo{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;display:flex;justify-content:center}
+.sheet-in{width:100%;max-width:520px;background:var(--paper);color:var(--ink);border-radius:18px 18px 0 0;border:1px solid var(--line);border-bottom:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;animation:sobe .2s ease}
+@keyframes sobe{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+.sheet-top{display:flex;justify-content:space-between;align-items:center;font-size:18px}
+.fechar{background:transparent;border:0;color:var(--muted);font-weight:600;font-size:15px;padding:8px 0;cursor:pointer}
+#editValor{min-width:0;font-family:var(--num);font-size:clamp(22px,7vw,28px);font-weight:700;width:100%;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+#editValor:focus{outline:none;border-color:var(--accent)}
+#editQtd{width:44px;border:0;background:transparent;color:var(--ink);text-align:center;font-family:var(--num);font-size:22px;font-weight:700;padding:0}
+#editQtd:focus{outline:none}
+.excluir{background:transparent;color:var(--danger);border:2px solid color-mix(in srgb,var(--danger) 55%,transparent);font-size:16px;padding:11px 16px}
+.excluir:active{background:color-mix(in srgb,var(--danger) 12%,transparent)}
+@media (prefers-reduced-motion:reduce){.item.novo,.sheet-in{animation:none}}
 </style>
 
 </head>
@@ -97,7 +115,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   <div class="top">
     <div class="visor" aria-live="polite">
       <div class="linha">
-        <div><small>Total arredondado</small><div class="total" id="total">R$ 0</div></div>
+        <div><small>Total arredondado</small><div class="total" id="total">R$ 0,00</div></div>
         <div class="count" id="count">0 itens</div>
       </div>
       <div class="orc" id="orc">
@@ -145,6 +163,29 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   </div>
 </div>
 
+<div class="fundo" id="fundo" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-labelledby="editTit" hidden>
+  <div class="sheet-in">
+    <div class="sheet-top"><b id="editTit">Item</b><button type="button" class="fechar" id="editCancelar" aria-label="Fechar">Cancelar</button></div>
+    <div class="entrada">
+      <div class="campo">
+        <label for="editValor">Valor</label>
+        <input id="editValor" size="1" inputmode="numeric" value="R$ 0,00">
+      </div>
+      <div class="campo">
+        <label for="editQtd">Qtd</label>
+        <div class="qtd">
+          <button type="button" id="editMenos" aria-label="Diminuir quantidade">−</button>
+          <input id="editQtd" size="1" inputmode="numeric" value="1" aria-label="Quantidade">
+          <button type="button" id="editMais" aria-label="Aumentar quantidade">+</button>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="btn incluir" id="editSalvar">Salvar alteração</button>
+    <button type="button" class="btn excluir" id="editExcluir">Excluir item</button>
+  </div>
+</div>
+
 <div class="aviso" id="aviso" hidden><span id="avisoTxt"></span><button type="button" id="desfazer">Desfazer</button></div>
 
 <script>
@@ -179,11 +220,13 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     itens.forEach((it,i)=>{
       const sub=it.v*it.q;tot+=sub;un+=it.q;
       const li=document.createElement('li');li.className='item'+(novo&&i===itens.length-1?' novo':'');
-      li.innerHTML=`<span class="n">${i+1}</span><span class="calc">${it.q} × ${brl(it.v)}</span><span class="sub">${brl(sub)}</span><button class="del" aria-label="Remover item ${i+1}">✕</button>`;
-      li.querySelector('.del').onclick=()=>remover(i);
+      li.innerHTML=`<span class="n">${i+1}</span><span class="calc">${it.q} × ${brl(it.v)}</span><span class="sub">${brl(sub)}</span><span class="ed" aria-hidden="true">✎</span>`;
+      li.tabIndex=0;li.setAttribute('role','button');li.setAttribute('aria-label',`Editar item ${i+1}`);
+      li.onclick=()=>abreEdicao(i);
+      li.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();abreEdicao(i)}};
       cupom.appendChild(li);
     });
-    $('total').textContent='R$ '+Math.ceil(tot/100).toLocaleString('pt-BR');
+    $('total').textContent=brl(Math.ceil(tot/10)*10);
     orcamento(tot);
     $('count').innerHTML=`${itens.length} ${itens.length===1?'item':'itens'}<br>${un} ${un===1?'unidade':'unidades'}`;
     $('vazio').hidden=itens.length>0;cupom.hidden=itens.length===0;
@@ -209,6 +252,32 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   $('nao').onclick=()=>conf(false);
   $('sim').onclick=()=>{ultimoRemovido={tipo:'tudo',lista:itens.slice()};itens=[];salvar();render();conf(false);aviso('Compra zerada')};
 
+  // Edição de item
+  const eValor=$('editValor'),eQtd=$('editQtd');
+  let eIdx=-1,eCents=0;
+  const getEQ=()=>Math.max(1,Math.min(999,parseInt(eQtd.value,10)||1));
+  function abreEdicao(i){
+    eIdx=i;eCents=itens[i].v;eValor.value=brl(eCents);eQtd.value=itens[i].q;
+    $('editTit').textContent='Item '+(i+1);
+    $('fundo').hidden=false;$('sheet').hidden=false;
+  }
+  function fechaEdicao(){$('fundo').hidden=true;$('sheet').hidden=true;eIdx=-1}
+  eValor.addEventListener('input',()=>{
+    const d=eValor.value.replace(/\D/g,'').replace(/^0+/,'').slice(0,8);
+    eCents=d?parseInt(d,10):0;eValor.value=brl(eCents);$('editSalvar').disabled=eCents===0;
+    requestAnimationFrame(()=>{const L=eValor.value.length;eValor.setSelectionRange(L,L)});
+  });
+  eValor.addEventListener('focus',()=>requestAnimationFrame(()=>{const L=eValor.value.length;eValor.setSelectionRange(L,L)}));
+  eValor.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('editSalvar').click()}});
+  $('editMais').onclick=()=>{eQtd.value=Math.min(999,getEQ()+1)};
+  $('editMenos').onclick=()=>{eQtd.value=Math.max(1,getEQ()-1)};
+  eQtd.addEventListener('focus',()=>eQtd.select());
+  eQtd.addEventListener('blur',()=>{eQtd.value=getEQ()});
+  $('editSalvar').onclick=()=>{if(eIdx<0||!eCents)return;itens[eIdx]={v:eCents,q:getEQ()};salvar();fechaEdicao();render()};
+  $('editExcluir').onclick=()=>{if(eIdx<0)return;const i=eIdx;fechaEdicao();remover(i)};
+  $('editCancelar').onclick=fechaEdicao;$('fundo').onclick=fechaEdicao;
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&eIdx>=0)fechaEdicao()});
+
   // Limite de gasto
   const LKEY=KEY+'.limite';
   let lim=0,limCents=0,totAtual=0;
@@ -220,7 +289,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     $('orcBtn').hidden=lim>0||editando;
     $('orcInfo').hidden=!(lim>0)||editando;
     if(!lim)return;
-    const arred=Math.ceil(tot/100)*100,resto=lim-arred,f=$('falta'),b=$('barra'),p=arred/lim;
+    const arred=Math.ceil(tot/10)*10,resto=lim-arred,f=$('falta'),b=$('barra'),p=arred/lim;
     f.textContent=resto>=0?'Faltam '+brl(resto):'Passou '+brl(-resto);
     f.classList.toggle('estouro',resto<0);
     $('limTxt').textContent=brl(lim);
