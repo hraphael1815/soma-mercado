@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Soma Mercado</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}input,button{font:inherit}</style>
+<meta name="theme-color" content="#1f3a34">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: visor de caixa fixo no topo (total + entrada), cupom rolável embaixo */
+:root{
+  --bg:#eef1ee; --paper:#fbfcfa; --ink:#18201d; --muted:#5f6b66; --line:#d6ddd8;
+  --display:#1f3a34; --display-ink:#e9f5ef; --accent:#2f9e6f; --accent-ink:#ffffff; --danger:#c2412d;
+  --ui:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --num:"JetBrains Mono",ui-monospace,"Roboto Mono",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1412; --paper:#161d1a; --ink:#e4ebe7; --muted:#8e9c95; --line:#26302c;
+  --display:#0b2a22; --display-ink:#d9f3e6; --accent:#3dbb85; --accent-ink:#06130d; --danger:#ef7a64; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1412; --paper:#161d1a; --ink:#e4ebe7; --muted:#8e9c95; --line:#26302c;
+  --display:#0b2a22; --display-ink:#d9f3e6; --accent:#3dbb85; --accent-ink:#06130d; --danger:#ef7a64; color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:16px;-webkit-tap-highlight-color:transparent}
+.app{max-width:520px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 12px;
+  display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.visor{background:var(--display);color:var(--display-ink);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.linha{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.exato{font-family:var(--num);font-size:14px;opacity:.8;margin-top:2px;font-variant-numeric:tabular-nums}
+.orc{border-top:1px solid color-mix(in srgb,var(--display-ink) 20%,transparent);padding-top:10px}
+.orc-def{width:100%;background:transparent;border:1.5px dashed color-mix(in srgb,var(--display-ink) 45%,transparent);color:var(--display-ink);border-radius:10px;padding:9px;font-family:var(--ui);font-weight:600;font-size:15px;cursor:pointer}
+.orc-txt{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:var(--num);font-variant-numeric:tabular-nums}
+#falta{font-size:18px;font-weight:700}
+#falta.estouro{color:#ff9b87}
+.orc-lim{background:transparent;border:0;color:var(--display-ink);opacity:.8;font-family:var(--num);font-size:14px;cursor:pointer;padding:4px 0;white-space:nowrap}
+.barra{height:6px;border-radius:3px;background:color-mix(in srgb,var(--display-ink) 18%,transparent);margin-top:6px;overflow:hidden}
+.barra i{display:block;height:100%;width:0;background:var(--accent);border-radius:3px;transition:width .25s}
+.barra i.alerta{background:#e8b04a}
+.barra i.estouro{background:#ff9b87}
+.orc-edit{display:grid;grid-template-columns:1fr auto auto;gap:8px}
+#limite{font-family:var(--num);font-size:20px;font-weight:700;padding:8px 10px;border-radius:10px;border:2px solid var(--accent);background:var(--paper);color:var(--ink);text-align:right;min-width:0;width:100%}
+#limite:focus{outline:none}
+.orc-edit button{border:0;border-radius:10px;padding:0 14px;font-weight:700;font-size:15px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.orc-edit #limTirar{background:transparent;color:var(--display-ink);border:1.5px solid color-mix(in srgb,var(--display-ink) 40%,transparent)}
+.visor small{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.75;font-weight:600}
+.total{font-family:var(--num);font-weight:700;font-size:clamp(32px,10vw,44px);line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap}
+.count{text-align:right;font-family:var(--num);font-size:14px;opacity:.85;white-space:nowrap}
+.entrada{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px}
+.campo{display:flex;flex-direction:column;gap:4px;min-width:0}
+.campo label{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+#valor{min-width:0;font-family:var(--num);font-size:clamp(22px,7vw,28px);font-weight:700;width:100%;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+#valor:focus{outline:none;border-color:var(--accent)}
+.qtd{display:flex;align-items:stretch;border:2px solid var(--line);border-radius:12px;background:var(--paper);overflow:hidden;height:100%}
+.qtd button{width:44px;border:0;background:transparent;color:var(--ink);font-size:24px;font-weight:700;cursor:pointer}
+.qtd button:active{background:var(--line)}
+#qtd{width:44px;border:0;background:transparent;color:var(--ink);text-align:center;font-family:var(--num);font-size:22px;font-weight:700;padding:0}
+#qtd:focus{outline:none}
+.acoes{display:grid;grid-template-columns:1fr auto;gap:10px}
+.btn{border:0;border-radius:12px;font-family:var(--ui);font-weight:700;font-size:18px;padding:14px 16px;cursor:pointer}
+.btn:focus-visible,.qtd button:focus-visible,.del:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.incluir{background:var(--accent);color:var(--accent-ink)}
+.incluir:active{filter:brightness(.92)}
+.incluir:disabled{opacity:.45}
+.nova{background:transparent;color:var(--muted);border:2px solid var(--line);font-size:15px}
+.lista{flex:1;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px 24px}
+.cupom{background:var(--paper);border-radius:12px;border:1px solid var(--line);list-style:none;margin:0;padding:0;counter-reset:n}
+.item{display:grid;grid-template-columns:28px 1fr auto 40px;align-items:center;gap:8px;padding:12px 8px 12px 12px;border-bottom:1px dashed var(--line);font-family:var(--num);font-variant-numeric:tabular-nums}
+.item:last-child{border-bottom:0}
+.item .n{color:var(--muted);font-size:13px}
+.item .calc{color:var(--muted);font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .sub{font-weight:700;font-size:18px;text-align:right}
+.item.novo{animation:pisca .6s ease}
+@keyframes pisca{from{background:color-mix(in srgb,var(--accent) 22%,transparent)}to{background:transparent}}
+.del{width:36px;height:36px;border:0;border-radius:8px;background:transparent;color:var(--danger);font-size:20px;cursor:pointer}
+.vazio{color:var(--muted);text-align:center;padding:32px 16px;line-height:1.5}
+.aviso{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 12px 10px 16px;display:flex;gap:12px;align-items:center;font-size:15px;max-width:calc(100% - 32px);z-index:20}
+.aviso button{background:transparent;border:0;color:var(--accent);font-weight:700;font-size:15px;cursor:pointer;padding:6px}
+.confirma{display:flex;gap:8px;align-items:center;justify-content:space-between;background:var(--paper);border:2px solid var(--danger);border-radius:12px;padding:10px 12px;font-weight:600}
+.confirma div{display:flex;gap:8px}
+.confirma button{border-radius:10px;padding:8px 14px;font-weight:700;font-size:15px;cursor:pointer;border:2px solid var(--line);background:transparent;color:var(--ink)}
+.confirma .sim{background:var(--danger);border-color:var(--danger);color:#fff}
+@media (prefers-reduced-motion:reduce){.item.novo{animation:none}}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="visor" aria-live="polite">
+      <div class="linha">
+        <div><small>Total arredondado</small><div class="total" id="total">R$ 0</div></div>
+        <div class="count" id="count">0 itens</div>
+      </div>
+      <div class="orc" id="orc">
+        <button type="button" class="orc-def" id="orcBtn">Definir quanto quero gastar</button>
+        <div class="orc-info" id="orcInfo" hidden>
+          <div class="orc-txt"><span id="falta">Faltam R$ 0,00</span><button type="button" class="orc-lim" id="orcEdit" aria-label="Alterar limite">de <b id="limTxt">R$ 0,00</b> ✎</button></div>
+          <div class="barra"><i id="barra"></i></div>
+        </div>
+        <div class="orc-edit" id="orcForm" hidden>
+          <input id="limite" inputmode="numeric" value="R$ 0,00" aria-label="Quanto quero gastar">
+          <button type="button" id="limOk">OK</button>
+          <button type="button" id="limTirar">Remover</button>
+        </div>
+      </div>
+    </div>
+
+    <form class="entrada" id="form" autocomplete="off">
+      <div class="campo">
+        <label for="valor">Valor</label>
+        <input id="valor" size="1" inputmode="numeric" value="R$ 0,00" aria-label="Valor do produto">
+      </div>
+      <div class="campo">
+        <label for="qtd">Qtd</label>
+        <div class="qtd">
+          <button type="button" id="menos" aria-label="Diminuir quantidade">−</button>
+          <input id="qtd" size="1" inputmode="numeric" value="1" aria-label="Quantidade">
+          <button type="button" id="mais" aria-label="Aumentar quantidade">+</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="acoes" id="acoes">
+      <button class="btn incluir" id="incluir" type="submit" form="form" disabled>Incluir</button>
+      <button class="btn nova" id="nova" type="button">Nova compra</button>
+    </div>
+    <div class="confirma" id="confirma" hidden>
+      <span>Zerar a compra?</span>
+      <div><button type="button" id="nao">Cancelar</button><button type="button" class="sim" id="sim">Zerar</button></div>
+    </div>
+  </div>
+
+  <div class="lista">
+    <ol class="cupom" id="cupom"></ol>
+    <p class="vazio" id="vazio">Digite o valor, ajuste a quantidade e toque em <b>Incluir</b>.<br>Os produtos aparecem aqui, um abaixo do outro.</p>
+  </div>
+</div>
+
+<div class="aviso" id="aviso" hidden><span id="avisoTxt"></span><button type="button" id="desfazer">Desfazer</button></div>
+
+<script>
+(function(){
+  const KEY='somaMercado.v1';
+  const brl=c=>'R$ '+(c/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const $=id=>document.getElementById(id);
+  const valor=$('valor'),qtd=$('qtd'),cupom=$('cupom');
+  let itens=[],cents=0,ultimoRemovido=null,timer=null;
+
+  try{const s=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(s))itens=s}catch(e){}
+  const salvar=()=>{try{localStorage.setItem(KEY,JSON.stringify(itens))}catch(e){}};
+
+  // Valor digitado como caixa registradora: 1 0 9 0 -> R$ 10,90
+  function pintaValor(){valor.value=brl(cents);$('incluir').disabled=cents===0}
+  valor.addEventListener('input',()=>{
+    const d=valor.value.replace(/\D/g,'').replace(/^0+/,'').slice(0,8);
+    cents=d?parseInt(d,10):0;pintaValor();
+    requestAnimationFrame(()=>{const L=valor.value.length;valor.setSelectionRange(L,L)});
+  });
+  valor.addEventListener('focus',()=>requestAnimationFrame(()=>{const L=valor.value.length;valor.setSelectionRange(L,L)}));
+
+  const getQ=()=>Math.max(1,Math.min(999,parseInt(qtd.value,10)||1));
+  $('mais').onclick=()=>{qtd.value=Math.min(999,getQ()+1)};
+  $('menos').onclick=()=>{qtd.value=Math.max(1,getQ()-1)};
+  qtd.addEventListener('focus',()=>qtd.select());
+  qtd.addEventListener('blur',()=>{qtd.value=getQ()});
+
+  function render(novo){
+    let tot=0,un=0;
+    cupom.innerHTML='';
+    itens.forEach((it,i)=>{
+      const sub=it.v*it.q;tot+=sub;un+=it.q;
+      const li=document.createElement('li');li.className='item'+(novo&&i===itens.length-1?' novo':'');
+      li.innerHTML=`<span class="n">${i+1}</span><span class="calc">${it.q} × ${brl(it.v)}</span><span class="sub">${brl(sub)}</span><button class="del" aria-label="Remover item ${i+1}">✕</button>`;
+      li.querySelector('.del').onclick=()=>remover(i);
+      cupom.appendChild(li);
+    });
+    $('total').textContent='R$ '+Math.ceil(tot/100).toLocaleString('pt-BR');
+    orcamento(tot);
+    $('count').innerHTML=`${itens.length} ${itens.length===1?'item':'itens'}<br>${un} ${un===1?'unidade':'unidades'}`;
+    $('vazio').hidden=itens.length>0;cupom.hidden=itens.length===0;
+    if(novo&&cupom.lastChild)cupom.lastChild.scrollIntoView({block:'nearest',behavior:'smooth'});
+  }
+
+  $('form').addEventListener('submit',e=>{
+    e.preventDefault();if(!cents)return;
+    itens.push({v:cents,q:getQ()});salvar();
+    cents=0;pintaValor();qtd.value=1;render(true);valor.focus();
+  });
+
+  function aviso(t){$('avisoTxt').textContent=t;$('aviso').hidden=false;clearTimeout(timer);timer=setTimeout(()=>{$('aviso').hidden=true;ultimoRemovido=null},5000)}
+  function remover(i){ultimoRemovido={tipo:'item',i,it:itens[i]};itens.splice(i,1);salvar();render();aviso('Item removido')}
+  $('desfazer').onclick=()=>{
+    if(!ultimoRemovido)return;
+    if(ultimoRemovido.tipo==='item')itens.splice(ultimoRemovido.i,0,ultimoRemovido.it);else itens=ultimoRemovido.lista;
+    ultimoRemovido=null;salvar();render();$('aviso').hidden=true;
+  };
+
+  const conf=v=>{$('confirma').hidden=!v;$('acoes').hidden=v};
+  $('nova').onclick=()=>{if(itens.length)conf(true)};
+  $('nao').onclick=()=>conf(false);
+  $('sim').onclick=()=>{ultimoRemovido={tipo:'tudo',lista:itens.slice()};itens=[];salvar();render();conf(false);aviso('Compra zerada')};
+
+  // Limite de gasto
+  const LKEY=KEY+'.limite';
+  let lim=0,limCents=0,totAtual=0;
+  try{lim=parseInt(localStorage.getItem(LKEY)||'0',10)||0}catch(e){}
+  const limInput=$('limite');
+  function orcamento(tot){
+    totAtual=tot;
+    const editando=!$('orcForm').hidden;
+    $('orcBtn').hidden=lim>0||editando;
+    $('orcInfo').hidden=!(lim>0)||editando;
+    if(!lim)return;
+    const arred=Math.ceil(tot/100)*100,resto=lim-arred,f=$('falta'),b=$('barra'),p=arred/lim;
+    f.textContent=resto>=0?'Faltam '+brl(resto):'Passou '+brl(-resto);
+    f.classList.toggle('estouro',resto<0);
+    $('limTxt').textContent=brl(lim);
+    b.style.width=Math.min(100,p*100)+'%';
+    b.className=resto<0?'estouro':p>=0.9?'alerta':'';
+  }
+  function abreLim(){
+    limCents=lim;limInput.value=brl(limCents);
+    $('orcForm').hidden=false;$('limTirar').hidden=!lim;orcamento(totAtual);
+    limInput.focus();
+  }
+  function fechaLim(){$('orcForm').hidden=true;orcamento(totAtual)}
+  limInput.addEventListener('input',()=>{
+    const d=limInput.value.replace(/\D/g,'').replace(/^0+/,'').slice(0,9);
+    limCents=d?parseInt(d,10):0;limInput.value=brl(limCents);
+    requestAnimationFrame(()=>{const L=limInput.value.length;limInput.setSelectionRange(L,L)});
+  });
+  limInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('limOk').click()}});
+  $('orcBtn').onclick=abreLim;$('orcEdit').onclick=abreLim;
+  $('limOk').onclick=()=>{lim=limCents;try{localStorage.setItem(LKEY,String(lim))}catch(e){}fechaLim()};
+  $('limTirar').onclick=()=>{lim=0;try{localStorage.removeItem(LKEY)}catch(e){}fechaLim()};
+
+  pintaValor();render();
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(r=>{
+    r.addEventListener('updatefound',()=>{const w=r.installing;w&&w.addEventListener('statechange',()=>{if(w.state==='activated'&&navigator.serviceWorker.controller)location.reload()})});
+  }).catch(()=>{});
+}
+</script>
+</body>
+</html>
